@@ -8,7 +8,7 @@ AD: AD8232-EvalZ EKG Sensor Breakout
 UN: unnecessary extra microcontroller
 
 HB: receives pulse data from AD, blinks onboard LED, sends High/Low to a digital pin for transmission to TB (High for Pulse)
-TD: receives High/Low on digital pin 13, sends MIDI note to Ableton to create sounds; simultaneously listens to it's own electrode to send a different MIDI note when that electrode is touched; also blinks (different or same?) LED for each electrode touch
+TD: receives High/Low on digital pin 13, sends MIDI note to Ableton to create sounds; simultaneously listens to it's own electrode to send a different MIDI note when that electrode is touched; also blinks (different or same?) LED for each electrode touch. See included TB code.
 AD: sends pulse data to HB
 UN: when switch is flipped, do a rainbow sweep on 24-LED NeoPixel Ring.
 
