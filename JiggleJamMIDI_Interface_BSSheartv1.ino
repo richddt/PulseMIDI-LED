@@ -2,28 +2,28 @@
 
  Bare Conductive Touch USB MIDI instrument
  -----------------------------------------
- 
+
  Midi_interface.ino - USB MIDI touch instrument
- 
- Remember to select Bare Conductive Touch Board (USB MIDI, iPad compatible) 
+
+ Remember to select Bare Conductive Touch Board (USB MIDI, iPad compatible)
  in the Tools -> Board menu
- 
+
  Bare Conductive code written by Stefan Dzisiewski-Smith and Peter Krige.
- 
+
  This work is licensed under a MIT license https://opensource.org/licenses/MIT
- 
+
  Copyright (c) 2016, Bare Conductive
- 
+
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  copies of the Software, and to permit persons to whom the Software is
  furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included in all
  copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -45,7 +45,7 @@ const uint8_t numElectrodes = 12;
 
 // if toggle is set to true, touching once turns the note on, again turns it off
 // if toggle is set to false, the note is only on while the electrode is touched
-const boolean toggle = false; 
+const boolean toggle = false;
 
 // piano notes from C3 to B3 in semitones - you can replace these with your own values
 // for a custom note scale - http://newt.phys.unsw.edu.au/jw/notes.html has an excellent
@@ -64,30 +64,30 @@ void setup() {
   MPR121.begin(0x5C);
   MPR121.setInterruptPin(4);
   MPR121.updateTouchData();
-  pinMode(heartPin, INPUT); 
-  
-  
+  pinMode(heartPin, INPUT);
+
+
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
   // If the input pin is HIGH pulse the MIDI Note for the Heart
-  if (digitalRead(heartPin)){ 
-  pulse();
-  Serial.println("Pin is High~~~~~~~~~~~~~~~~~~~~~~~>");
+  if (digitalRead(heartPin)){
+    pulse();
+    Serial.println("Pin is High~~~~~~~~~~~~~~~~~~~~~~~>");
   }
   else {
     MIDIUSB.write({0x08, 0x80 | (channel & 0x0F), 47, 0});
     Serial.println("Pin is Low");
   }
-  
+
   if(MPR121.touchStatusChanged()){
     MPR121.updateTouchData();
     for(int i=0; i<numElectrodes; i++){
       if(MPR121.isNewTouch(i)){
         // if we have a new touch, turn on the onboard LED and
-        // send a "note on" message, or if in toggle mode, 
-        // toggle the message 
+        // send a "note on" message, or if in toggle mode,
+        // toggle the message
 
         digitalWrite(LED_BUILTIN, HIGH);
 
@@ -111,9 +111,9 @@ void loop() {
       }
     }
     // flush USB buffer to ensure all notes are sent
-    MIDIUSB.flush(); 
+    MIDIUSB.flush();
   }
-  
+
 }
 
 void noteOn(uint8_t channel, uint8_t pitch, uint8_t velocity) {
@@ -125,8 +125,8 @@ void noteOff(uint8_t channel, uint8_t pitch, uint8_t velocity) {
 }
 
 void pulse() {
-    Serial.println("Pulse");
-    MIDIUSB.write({0x09, 0x90 | (channel & 0x0F), 47, 127});
-    delay(100);
-    MIDIUSB.write({0x08, 0x80 | (channel & 0x0F), 47, 0});
+  Serial.println("Pulse");
+  MIDIUSB.write({0x09, 0x90 | (channel & 0x0F), 47, 127});
+  delay(100);
+  MIDIUSB.write({0x08, 0x80 | (channel & 0x0F), 47, 0});
 }
