@@ -79,6 +79,16 @@ void loop() {
   if (MIDIUSB.peek().type != MIDI_EVENT_NONE.type) {
     MIDIEvent event = MIDIUSB.read();
 
+    Serial.print(F("MIDI in! type=0x"));
+    Serial.print(event.type, HEX);
+    Serial.print(F(" data=0x"));
+    Serial.print(event.m1, HEX);
+    Serial.print(F(" 0x"));
+    Serial.print(event.m2, HEX);
+    Serial.print(F(" 0x"));
+    Serial.print(event.m3, HEX);
+    Serial.println();
+
     // TODO: is the type actually filled in?
     // TODO: should we filter on a particular channel or for a particular pitch?
     if (event.type == 0x08) { // Note off
