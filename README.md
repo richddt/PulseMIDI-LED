@@ -24,5 +24,4 @@ Upgrades:
 
 Required libraries:
 
-- arduino-timer v2.3.1
 - FastLED v3.5.0

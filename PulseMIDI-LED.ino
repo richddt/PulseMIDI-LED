@@ -1,10 +1,9 @@
-#include <arduino-timer.h>
 #include <FastLED.h>
 #include <MPR121.h>
 
 #define PIN_HEART 13
-#define PIN_BEAT_LED 4
-#define PIN_RING_LED 5
+#define PIN_BEAT_LED 11
+#define PIN_RING_LED 12
 #define NUM_ELECTRODES 12
 #define RING_LED_COUNT 24
 #define HEART_NOTE 47
@@ -20,8 +19,6 @@ bool heartNoteOn = false;
 bool crazyModeOn = false;
 uint8_t ringLedInitialHue = 0;
 
-Timer<4, millis, int> timer;
-
 CRGB beatLed[1];
 CRGB ringLed[RING_LED_COUNT];
 
@@ -30,23 +27,24 @@ void setup() {
   MPR121.setInterruptPin(4);
   MPR121.updateTouchData();
 
-  FastLED.addLeds<NEOPIXEL, PIN_BEAT_LED>(beatLed, 1);
+  FastLED.addLeds<WS2811, PIN_BEAT_LED>(beatLed, 1);
   FastLED.addLeds<NEOPIXEL, PIN_RING_LED>(ringLed, 1);
 
   pinMode(PIN_HEART, INPUT);
 }
 
 void loop() {
-  timer.tick<void>();
-
   // If we aren't already playing the heart note and the input pin is HIGH,
   // pulse the MIDI Note for the heart
   if (!heartNoteOn && digitalRead(PIN_HEART) == HIGH) {
     heartNoteOn = true;
-    Serial.println(F("Heart"));
+    Serial.println(F("Heart on"));
     beatLedOn();
     noteOn(channel, HEART_NOTE, 127);
-    timer.in(HEART_NOTE_ON_MILLIS, heartNoteOff);
+
+    EVERY_N_MILLISECONDS(HEART_NOTE_ON_MILLIS) {
+      heartNoteOff();
+    }
   }
 
   // Handle any changes to the touch sensors
@@ -55,6 +53,8 @@ void loop() {
     for (int i = 0; i < NUM_ELECTRODES; i++) {
       if (MPR121.isNewTouch(i)) {
         // if we have a new touch, turn on the LED and send a "note on" message
+        Serial.print("Touch ");
+        Serial.println(i);
         beatLedOn();
         noteOn(channel, notes[i], 127); // maximum velocity
       }
@@ -62,17 +62,13 @@ void loop() {
         // if we have a new release, turn off the LED and send a "note off" message
         beatLedOff();
         noteOff(channel, notes[i], 127); // maximum velocity
+        Serial.print("Release ");
+        Serial.println(i);
       }
     }
 
     // flush USB buffer to ensure all notes are sent
     MIDIUSB.flush();
-  }
-
-  // When crazy mode is on, animate the ring
-  if (crazyModeOn) {
-    ringLedInitialHue++;
-    ringLedAnimate();
   }
 
   // Check for a MIDI note to enable/disable crazy mode
@@ -98,11 +94,15 @@ void loop() {
     else if (event.type == 0x09) { // Note on
       crazyModeOn = true;
       ringLedInitialHue = 0;
-      ringLedAnimate();
     }
   }
 
-  FastLED.show();
+  // When crazy mode is on, animate the ring.
+  if (crazyModeOn) {
+    EVERY_N_MILLISECONDS(10) {
+      ringLedAnimate();
+    }
+  }
 }
 
 void noteOn(uint8_t channel, uint8_t pitch, uint8_t velocity) {
@@ -113,25 +113,29 @@ void noteOff(uint8_t channel, uint8_t pitch, uint8_t velocity) {
   MIDIUSB.write({0x08, 0x80 | (channel & 0x0F), pitch, velocity});
 }
 
-bool heartNoteOff(int) {
+void heartNoteOff() {
   beatLedOff();
   noteOff(channel, HEART_NOTE, 0);
   heartNoteOn = false;
-  return false;
+  Serial.println(F("Heart off"));
 }
 
 void beatLedOn() {
   beatLed[0] = CRGB::White;
+  FastLED.show();
 }
 
 void beatLedOff() {
   beatLed[0] = CRGB::Black;
+  FastLED.show();
 }
 
 void ringLedAnimate() {
-  fill_rainbow(ringLed, RING_LED_COUNT, ringLedInitialHue);
+  fill_rainbow(ringLed, RING_LED_COUNT, ringLedInitialHue++);
+  FastLED.show();
 }
 
 void ringLedOff() {
   fill_solid(ringLed, RING_LED_COUNT, CRGB::Black);
+  FastLED.show();
 }
