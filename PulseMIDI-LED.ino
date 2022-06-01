@@ -23,6 +23,8 @@ CRGB beatLed[1];
 CRGB ringLed[RING_LED_COUNT];
 
 void setup() {
+  Serial.begin(9600);
+
   MPR121.begin(0x5C);
   MPR121.setInterruptPin(4);
   MPR121.updateTouchData();
