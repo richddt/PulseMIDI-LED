@@ -133,7 +133,7 @@ void beatLedOff() {
 }
 
 void ringLedAnimate() {
-  fill_rainbow(ringLed, RING_LED_COUNT, ringLedInitialHue++);
+  fill_rainbow(ringLed, RING_LED_COUNT, ringLedInitialHue++, 255 / RING_LED_COUNT);
   FastLED.show();
 }
 
