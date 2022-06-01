@@ -17,6 +17,7 @@ const uint8_t channel = 0; // default channel is 0
 
 bool heartNoteOn = false;
 bool crazyModeOn = false;
+bool beatFadingOut = false;
 uint8_t ringLedInitialHue = 0;
 
 CRGB beatLed[1];
@@ -99,10 +100,16 @@ void loop() {
     }
   }
 
-  // When crazy mode is on, animate the ring.
-  if (crazyModeOn) {
+  // When in crazy mode or the beat LED is fading out, animate.
+  if (crazyModeOn || beatFadingOut) {
     EVERY_N_MILLISECONDS(10) {
-      ringLedAnimate();
+      if (crazyModeOn) {
+        ringLedAnimate();
+      }
+      if (beatFadingOut) {
+        beatLedFade();
+      }
+      FastLED.show();
     }
   }
 }
@@ -123,18 +130,21 @@ void heartNoteOff() {
 }
 
 void beatLedOn() {
-  beatLed[0] = CRGB::White;
+  beatFadingOut = false;
+  beatLed[0] = CRGB(127, 127, 127);
   FastLED.show();
 }
 
 void beatLedOff() {
-  beatLed[0] = CRGB::Black;
-  FastLED.show();
+  beatFadingOut = true;
+}
+
+void beatLedFade() {
+  fadeToBlackBy(beatLed, 1, 4);
 }
 
 void ringLedAnimate() {
   fill_rainbow(ringLed, RING_LED_COUNT, ringLedInitialHue++, 255 / RING_LED_COUNT);
-  FastLED.show();
 }
 
 void ringLedOff() {
