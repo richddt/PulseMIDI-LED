@@ -142,7 +142,7 @@ void beatLedOff() {
 void beatLedFade() {
   fadeToBlackBy(beatLed, 1, 4);
 
-  if (beatLed[0] == CRGB::Black) {
+  if (beatLed[0] == CRGB(0, 0, 0)) {
     beatFadingOut = false;
   }
 }
