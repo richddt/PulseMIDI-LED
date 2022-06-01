@@ -34,17 +34,17 @@ void setup() {
 }
 
 void loop() {
-  // If we aren't already playing the heart note and the input pin is HIGH,
-  // pulse the MIDI Note for the heart
-  if (!heartNoteOn && digitalRead(PIN_HEART) == HIGH) {
+  // Stop playing the heart note if it's time, or start playing it if the heart pin is HIGH
+  if (heartNoteOn) {
+    EVERY_N_MILLISECONDS(HEART_NOTE_ON_MILLIS) {
+      heartNoteOff();
+    }
+  }
+  else if (digitalRead(PIN_HEART) == HIGH) {
     heartNoteOn = true;
     Serial.println(F("Heart on"));
     beatLedOn();
     noteOn(channel, HEART_NOTE, 127);
-
-    EVERY_N_MILLISECONDS(HEART_NOTE_ON_MILLIS) {
-      heartNoteOff();
-    }
   }
 
   // Handle any changes to the touch sensors
