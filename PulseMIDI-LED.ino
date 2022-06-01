@@ -30,7 +30,7 @@ void setup() {
   MPR121.updateTouchData();
 
   FastLED.addLeds<WS2811, PIN_BEAT_LED>(beatLed, 1);
-  FastLED.addLeds<NEOPIXEL, PIN_RING_LED>(ringLed, 1);
+  FastLED.addLeds<NEOPIXEL, PIN_RING_LED>(ringLed, RING_LED_COUNT);
 
   pinMode(PIN_HEART, INPUT);
 }
