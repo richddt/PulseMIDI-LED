@@ -80,53 +80,41 @@ void loop() {
     MIDIUSB.flush();
   }
 
-  // Check for a MIDI note to enable/disable crazy mode
+  // Check for a MIDI note to enable/disable modes
   if (MIDIUSB.peek().type != MIDI_EVENT_NONE.type) {
-    MIDIEvent event1 = MIDIUSB.read({0x09, 0x90 | (channel & 0x0F), crazypitch, crazyvelocity});
+    MIDIEvent event = MIDIUSB.read();
 
     Serial.print(F("MIDI in! type=0x"));
-    Serial.print(event1.type, HEX);
+    Serial.print(event.type, HEX);
     Serial.print(F(" data=0x"));
-    Serial.print(event1.m1, HEX);
+    Serial.print(event.m1, HEX); // Status byte, message type and channel
     Serial.print(F(" 0x"));
-    Serial.print(event1.m2, HEX);
+    Serial.print(event.m2, HEX); // Data byte 1, pitch for note on/off
     Serial.print(F(" 0x"));
-    Serial.print(event1.m3, HEX);
+    Serial.print(event.m3, HEX); // Data byte 2, velocity for note on/off
     Serial.println();
 
-    // TODO: is the type actually filled in?
-    // TODO: should we filter on a particular channel or for a particular pitch?
-    if (event1.type == 0x08) { // Note off
-      crazyModeOn = false;
-      ringLedOff();
+    if (event.m2 == crazypitch) {
+      if (event.type == 0x08) { // Note off
+        crazyModeOn = false;
+        ringLedOff();
+      }
+      else if (event.type == 0x09) { // Note on
+        crazyModeOn = true;
+        ringLedInitialHue = 0;
+      }
     }
-    else if (event1.type == 0x09) { // Note on
-      crazyModeOn = true;
-      ringLedInitialHue = 0;
-    }
-  }
-
-
-// Check for a MIDI note to send heartbeat PulseIt from rods
-  if (MIDIUSB.peek().type != MIDI_EVENT_NONE.type) {
-    MIDIEvent event2 = MIDIUSB.read({0x09, 0x90 | (channel & 0x0F), pulsepitch, pulsevelocity});
-
-
-    // TODO: is the type actually filled in?
-    // TODO: should we filter on a particular channel or for a particular pitch?
-    if (event2.type == 0x08) { // Note off
-      pulseItOn = false;
-      beatLedOff(); // Turn off LED
-    }
-    else if (event2.type == 0x09) { // Note on
-      pulseItOn = true;
-      beatLedOn(); // Turn on LED
+    else if (event.m2 == pulsepitch) {
+      if (event.type == 0x08) { // Note off
+        pulseItOn = false;
+        beatLedOff(); // Turn off LED
+      }
+      else if (event.type == 0x09) { // Note on
+        pulseItOn = true;
+        beatLedOn(); // Turn on LED
+      }
     }
   }
-
-
-
-
 
   // When in crazy mode or the beat LED is fading out, or in a Pulse, animate (DDT update).
   if (crazyModeOn || beatFadingOut || pulseItOn) {

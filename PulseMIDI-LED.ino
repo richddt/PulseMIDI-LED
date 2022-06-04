@@ -9,16 +9,24 @@
 #define HEART_NOTE 47
 #define HEART_NOTE_ON_MILLIS 100
 
+
 // piano notes from C3 to B3 in semitones - you can replace these with your own values
 // for a custom note scale - http://newt.phys.unsw.edu.au/jw/notes.html has an excellent
 // reference to convert musical notes to MIDI note numbers
 const uint8_t notes[NUM_ELECTRODES] = {59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48};
 const uint8_t channel = 0; // default channel is 0
+const uint8_t crazypitch = 77; // listen to this note for crazy mode, sent from Ableton
+const uint8_t pulsepitch = 78; // listen to this note for pulse, sent from Ableton
+
+
 
 bool heartNoteOn = false;
 bool crazyModeOn = false;
+bool pulseItOn = false;
 bool beatFadingOut = false;
 uint8_t ringLedInitialHue = 0;
+uint8_t beatLedBrightness = 0;
+bool beatLedPulseDimming = true;
 
 CRGB beatLed[1];
 CRGB ringLed[RING_LED_COUNT];
@@ -74,40 +82,52 @@ void loop() {
     MIDIUSB.flush();
   }
 
-  // Check for a MIDI note to enable/disable crazy mode
+  // Check for a MIDI note to enable/disable modes
   if (MIDIUSB.peek().type != MIDI_EVENT_NONE.type) {
     MIDIEvent event = MIDIUSB.read();
 
     Serial.print(F("MIDI in! type=0x"));
     Serial.print(event.type, HEX);
     Serial.print(F(" data=0x"));
-    Serial.print(event.m1, HEX);
+    Serial.print(event.m1, HEX); // Status byte, message type and channel
     Serial.print(F(" 0x"));
-    Serial.print(event.m2, HEX);
+    Serial.print(event.m2, HEX); // Data byte 1, pitch for note on/off
     Serial.print(F(" 0x"));
-    Serial.print(event.m3, HEX);
+    Serial.print(event.m3, HEX); // Data byte 2, velocity for note on/off
     Serial.println();
 
-    // TODO: is the type actually filled in?
-    // TODO: should we filter on a particular channel or for a particular pitch?
-    if (event.type == 0x08) { // Note off
-      crazyModeOn = false;
-      ringLedOff();
+    if (event.m2 == crazypitch) {
+      if (event.type == 0x08) { // Note off
+        crazyModeOn = false;
+        ringLedOff();
+      }
+      else if (event.type == 0x09) { // Note on
+        crazyModeOn = true;
+        ringLedInitialHue = 0;
+      }
     }
-    else if (event.type == 0x09) { // Note on
-      crazyModeOn = true;
-      ringLedInitialHue = 0;
+    else if (event.m2 == pulsepitch) {
+      if (event.type == 0x08) { // Note off
+        pulseItOn = false;
+        beatLedOff(); // Turn off LED
+      }
+      else if (event.type == 0x09) { // Note on
+        pulseItOn = true;
+      }
     }
   }
 
-  // When in crazy mode or the beat LED is fading out, animate.
-  if (crazyModeOn || beatFadingOut) {
+  // When in crazy mode or the beat LED is fading out, or in a Pulse, animate (DDT update).
+  if (crazyModeOn || beatFadingOut || pulseItOn) {
     EVERY_N_MILLISECONDS(10) {
       if (crazyModeOn) {
         ringLedAnimate();
       }
       if (beatFadingOut) {
         beatLedFade();
+      }
+      if (pulseItOn) {
+        beatLedPulse();
       }
       FastLED.show();
     }
@@ -131,7 +151,10 @@ void heartNoteOff() {
 
 void beatLedOn() {
   beatFadingOut = false;
-  beatLed[0] = CRGB(127, 127, 127);
+  beatLedBrightness = 127; // max brightness is 255
+  // Hue, Saturation, Value (a.k.a. brightness).
+  // 0 saturation will give white, change the first two values to make this a color.
+  beatLed[0] = CHSV(0, 0, beatLedBrightness);
   FastLED.show();
 }
 
@@ -140,10 +163,30 @@ void beatLedOff() {
 }
 
 void beatLedFade() {
-  fadeToBlackBy(beatLed, 1, 4);
+  fadeToBlackBy(beatLed, 1, 28); // 3rd value (28) is fade to black speed: higher number = faster
 
   if (beatLed[0] == CRGB(0, 0, 0)) {
     beatFadingOut = false;
+  }
+}
+
+void beatLedPulse() {
+  // Got the basic idea from https://codebender.cc/sketch:86106#FadePulseGlow.ino
+  // Change the direction of fading when we hit the desired threshold
+  if (beatLedBrightness >= 127) { // This number sets the maximum brightness for the pulsing effect
+    beatLedPulseDimming = true;
+  }
+  else if (beatLedBrightness < 32) { // This number sets the minimum brightness for the pulsing effect
+    beatLedPulseDimming = false;
+  }
+
+  if (beatLedPulseDimming) {
+    // The third parameter determines the speed at which it dims
+    fadeToBlackBy(beatLed, 1, 28);
+  }
+  else {
+    // This third parameter determines the speed at which it brightens
+    fadeLightBy(beatLed, 1, 28);
   }
 }
 
